@@ -388,6 +388,9 @@ impl From<Color> for ImVec4 {
 pub struct Context {
     imgui: NonNull<RawContext>,
     ini_file_name: Option<CString>,
+
+    #[cfg(feature = "implot")]
+    implot: NonNull<RawImPlotContext>,
 }
 
 /// A context that we are sure is made current.
@@ -449,15 +452,32 @@ impl ContextBuilder {
     #[must_use]
     pub unsafe fn build(&self) -> Context {
         let imgui;
+
+        #[cfg(feature = "implot")]
+        let implot;
+
         // Probably not needed but just in case
         unsafe {
             imgui = ImGui_CreateContext(null_mut());
             ImGui_SetCurrentContext(imgui);
+
+            #[cfg(feature = "implot")]
+            {
+                implot = ImPlot_CreateContext();
+                ImPlot_SetCurrentContext(implot);
+            }
         }
         let imgui = NonNull::new(imgui).unwrap();
+
+        #[cfg(feature = "implot")]
+        let implot = NonNull::new(implot).unwrap();
+
         let mut ctx = Context {
             imgui: imgui.cast(),
             ini_file_name: None,
+
+            #[cfg(feature = "implot")]
+            implot: implot.cast(),
         };
         ctx.set_ini_file_name(self.ini_file_name.as_deref());
 
@@ -604,6 +624,11 @@ impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
             ImGui_DestroyContext(self.imgui.as_mut().inner());
+
+            #[cfg(feature = "implot")]
+            {
+                ImPlot_DestroyContext(self.implot.as_mut().inner());
+            }
         }
     }
 }
@@ -680,6 +705,20 @@ impl RawContext {
             let ptr = (*self.Viewports)[0];
             Viewport::cast(&(*ptr)._base)
         }
+    }
+}
+
+#[cfg(feature = "implot")]
+transparent! {
+    pub struct RawImPlotContext(ImPlotContext);
+}
+
+#[cfg(feature = "implot")]
+impl RawImPlotContext {
+    /// Gets a reference to the actual ImPlot context struct.
+    #[inline]
+    pub unsafe fn inner(&mut self) -> &mut ImPlotContext {
+        &mut self.0
     }
 }
 
@@ -2705,6 +2744,12 @@ impl<A> Ui<A> {
     pub fn show_demo_window(&self, mut show: Option<&mut bool>) {
         unsafe {
             ImGui_ShowDemoWindow(optional_mut_bool(&mut show));
+        }
+    }
+    #[cfg(feature = "implot")]
+    pub fn show_implot_demo_window(&self, mut show: Option<&mut bool>) {
+        unsafe {
+            ImPlot_ShowDemoWindow(optional_mut_bool(&mut show));
         }
     }
     pub fn set_next_window_pos(&self, pos: Vector2, cond: Cond, pivot: Vector2) {

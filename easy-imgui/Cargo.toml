@@ -21,6 +21,7 @@ log = "0.4"
 [features]
 default = []
 freetype = ["easy-imgui-sys/freetype"]
+implot = ["easy-imgui-sys/implot"]
 
 #[dev-dependencies]
 #easy-imgui-window = { version = "=0.6.0", path = "../easy-imgui-window" }

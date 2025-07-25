@@ -67,6 +67,28 @@ extern thread_local ImGuiContext* MyImGuiTLS;
     )
     .unwrap();
 
+    let implot = cfg!(feature = "implot");
+
+    // implot_ori is a submodule of the upstream implot repository.
+    let implot_ori = manifest_dir.join("implot");
+
+    for ori in [
+        "implot.h",
+        "implot_internal.h",
+        "implot.cpp",
+        "implot_items.cpp",
+        "implot_demo.cpp",
+    ] {
+        if implot {
+            let src = implot_ori.join(ori);
+            sh.copy_file(&src, &imgui_src).unwrap();
+            println!("cargo:rerun-if-changed={}", src.display());
+        } else {
+            let path = imgui_src.join(ori);
+            sh.remove_path(path).unwrap();
+        }
+    }
+
     println!("cargo:THIRD_PARTY={}", imgui_src.display());
 
     println!("cargo:rerun-if-changed=wrapper.cpp");
@@ -79,6 +101,17 @@ extern thread_local ImGuiContext* MyImGuiTLS;
         "cargo:rerun-if-changed={}/imgui.h",
         imgui_ori.to_string_lossy()
     );
+
+    if implot {
+        println!(
+            "cargo:rerun-if-changed={}/implot.cpp",
+            implot_ori.to_string_lossy()
+        );
+        println!(
+            "cargo:rerun-if-changed={}/implot.h",
+            implot_ori.to_string_lossy()
+        );
+    }
 
     let freetype = if cfg!(feature = "freetype") {
         Some(pkg_config::probe_library("freetype2").unwrap())
@@ -106,6 +139,16 @@ extern thread_local ImGuiContext* MyImGuiTLS;
         .prepend_enum_name(false)
         .bitfield_enum(".*Flags_")
         .newtype_enum(".*");
+
+    if implot {
+        bindings = bindings
+            .clang_arg("-DIMGUI_ENABLE_IMPLOT=1")
+            .header(imgui_src.join("implot.h").to_string_lossy())
+            .header(imgui_src.join("implot_internal.h").to_string_lossy())
+            .allowlist_file(".*[/\\\\]implot.h")
+            // many people use the internals, so better to expose those, just do not use them lightly
+            .allowlist_file(".*[/\\\\]implot_internal.h");
+    }
 
     if target_env == "msvc" {
         /* MSVC compilers have a weird ABI for C++. The only difference that affects us is a
@@ -162,6 +205,9 @@ extern thread_local ImGuiContext* MyImGuiTLS;
         for include in &freetype.include_paths {
             build.include(include.display().to_string());
         }
+    }
+    if implot {
+        build.define("IMGUI_ENABLE_IMPLOT", "1");
     }
     build.compile("dear_imgui");
 }

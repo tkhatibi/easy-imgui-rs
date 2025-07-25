@@ -9,7 +9,7 @@ license = "MIT"
 readme = "../README.md"
 repository = "https://github.com/rodrigorc/easy-imgui-rs"
 categories = ["gui"]
-keywords = ["imgui", "ui", "graphics"]
+keywords = ["imgui", "ui", "graphics", "implot"]
 
 [build-dependencies]
 bindgen = "0.72"
@@ -19,3 +19,4 @@ xshell = "0.2"
 
 [features]
 freetype = []
+implot = []

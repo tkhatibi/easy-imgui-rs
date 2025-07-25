@@ -13,6 +13,7 @@ keywords = ["imgui", "ui", "graphics"]
 default = ["clipboard", "main-window"]
 clipboard = ["dep:arboard"]
 freetype = ["easy-imgui/freetype"]
+implot = ["easy-imgui/implot"]
 main-window = ["dep:glutin-winit"]
 
 [dependencies]
@@ -20,7 +21,7 @@ easy-imgui-sys = { version = "=0.16.1", path = "../easy-imgui-sys" }
 easy-imgui = { version = "=0.16.1", path = "../easy-imgui" }
 easy-imgui-renderer = { version = "=0.16.1", path = "../easy-imgui-renderer" }
 
-log ="0.4"
+log = "0.4"
 anyhow = "1"
 bitflags = "2"
 glutin = "0.32"
@@ -42,4 +43,3 @@ async-std = "1.13.0"
 tokio = { version = "1.43", features = ["macros", "rt-multi-thread"] }
 reqwest = "0.12"
 env_logger = "0.11"
-

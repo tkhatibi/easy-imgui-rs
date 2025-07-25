@@ -11,6 +11,11 @@ keywords = ["imgui", "ui", "graphics"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+freetype = ["easy-imgui/freetype", "easy-imgui-sys/freetype"]
+implot = ["easy-imgui/implot", "easy-imgui-sys/implot"]
+
 [dependencies]
 easy-imgui-sys = { version = "=0.16.1", path = "../easy-imgui-sys" }
 easy-imgui = { version = "=0.16.1", path = "../easy-imgui" }
