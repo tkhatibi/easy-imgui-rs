@@ -1,3 +1,7 @@
 [submodule "imgui"]
 	path = easy-imgui-sys/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "implot"]
+	path = easy-imgui-rs/implot
+	url = https://github.com/epezent/implot.git
+	branch = master
