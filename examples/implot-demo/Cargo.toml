@@ -1,0 +1,12 @@
+[package]
+name = "implot-demo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+easy-imgui-window = { version = "=0.16.1", path = "../../easy-imgui-window", features = [
+    "clipboard",
+    "main-window",
+    "freetype",
+    "implot",
+] }
