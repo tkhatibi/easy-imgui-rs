@@ -1,8 +1,6 @@
-use std::os::raw::{c_int, c_void};
-
 use easy_imgui_window::{
     AppHandler, Application, Args, EventResult,
-    easy_imgui::{self as imgui, lbl},
+    easy_imgui::{self as imgui, PlotFlags, WithImPlot, lbl},
     easy_imgui_sys::{self as sys},
     winit,
 };
@@ -50,55 +48,33 @@ impl Application for App {
     }
 }
 
-unsafe extern "C" fn bar_getter(idx: c_int, user_data: *mut c_void) -> sys::ImPlotPoint {
-    // reinterpret user_data as pointer to f64
-    let vals = user_data as *const f64;
-
-    // now do the pointer arithmetic + deref in its own unsafe block
-    let y = unsafe { *vals.add(idx as usize) };
-
-    // x = index, y = array value
-    sys::ImPlotPoint { x: idx as f64, y }
-}
-
 impl imgui::UiBuilder for App {
     fn do_ui(&mut self, ui: &imgui::Ui<Self>) {
         ui.dock_space_over_viewport(0, ui.get_main_viewport(), imgui::DockNodeFlags::None);
         ui.show_demo_window(None);
         ui.show_implot_demo_window(None);
 
-        let mut bar_data = Vec::new();
-        for i in 0..10 {
-            bar_data.push(i + 1);
-        }
-
-        let mut bar_data = vec![1.0_f64, 2.5, 0.3, 4.2];
-        let labels = std::ffi::CString::new("My Bars").unwrap();
-
-        // we need a *mut c_void, so get a mutable pointer to our Vec’s buffer
-        let user_data = bar_data.as_mut_ptr() as *mut c_void;
-        let count = bar_data.len() as core::ffi::c_int;
-        let width = 0.8_f64;
-
         ui.window_config(lbl("Hello World!")).with(|| {
-            ui.text("This is some useful text."); // Display some text (you can use a format strings too)
-            unsafe {
-                if sys::ImPlot_BeginPlot(
-                    std::ffi::CString::new("Plot").unwrap().as_ptr(),
-                    &sys::ImVec2 { x: -1.0, y: 0.0 },
-                    0,
-                ) {
-                    sys::ImPlot_PlotBarsG(
-                        labels.as_ptr(),
-                        Some(bar_getter),
-                        user_data,
-                        count,
-                        width,
-                        0,
-                    );
-                    sys::ImPlot_EndPlot();
-                }
-            }
+            ui.text("This is some useful text.");
+            let points = vec![
+                sys::ImVec2 { x: 1.0, y: 10.0 },
+                sys::ImVec2 { x: 2.0, y: 20.0 },
+                sys::ImVec2 { x: 3.0, y: 50.0 },
+                sys::ImVec2 { x: 4.0, y: 80.0 },
+                sys::ImVec2 { x: 5.0, y: 60.0 },
+                sys::ImVec2 { x: 6.0, y: 90.0 },
+                sys::ImVec2 { x: 7.0, y: 70.0 },
+                sys::ImVec2 { x: 8.0, y: 80.0 },
+            ];
+            ui.plot("plot")
+                .size(sys::ImVec2 { x: -1.0, y: 0.0 })
+                .flags(PlotFlags::NoMenus | PlotFlags::NoLegend)
+                .with(|plot| {
+                    plot.bars("My Bars")
+                        .bar_size(0.8)
+                        // .flags(PlotBarsFlags::Horizontal)
+                        .with(&points);
+                });
         });
     }
 }

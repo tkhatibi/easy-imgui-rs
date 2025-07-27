@@ -167,7 +167,7 @@ pub use cgmath;
 use easy_imgui_sys::*;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::ffi::{CStr, CString, OsString, c_char, c_void};
+use std::ffi::{CStr, CString, OsString, c_char, c_void, c_int};
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ops::{Deref, DerefMut};
@@ -705,20 +705,6 @@ impl RawContext {
             let ptr = (*self.Viewports)[0];
             Viewport::cast(&(*ptr)._base)
         }
-    }
-}
-
-#[cfg(feature = "implot")]
-transparent! {
-    pub struct RawImPlotContext(ImPlotContext);
-}
-
-#[cfg(feature = "implot")]
-impl RawImPlotContext {
-    /// Gets a reference to the actual ImPlot context struct.
-    #[inline]
-    pub unsafe fn inner(&mut self) -> &mut ImPlotContext {
-        &mut self.0
     }
 }
 
@@ -2744,12 +2730,6 @@ impl<A> Ui<A> {
     pub fn show_demo_window(&self, mut show: Option<&mut bool>) {
         unsafe {
             ImGui_ShowDemoWindow(optional_mut_bool(&mut show));
-        }
-    }
-    #[cfg(feature = "implot")]
-    pub fn show_implot_demo_window(&self, mut show: Option<&mut bool>) {
-        unsafe {
-            ImPlot_ShowDemoWindow(optional_mut_bool(&mut show));
         }
     }
     pub fn set_next_window_pos(&self, pos: Vector2, cond: Cond, pivot: Vector2) {
@@ -5203,5 +5183,161 @@ impl TableColumnSortSpec {
     }
     pub fn sort_direction(&self) -> SortDirection {
         SortDirection::from_bits(self.0.SortDirection).unwrap_or(SortDirection::None)
+    }
+}
+
+#[cfg(feature = "implot")]
+transparent! {
+    pub struct RawImPlotContext(ImPlotContext);
+}
+
+#[cfg(feature = "implot")]
+impl RawImPlotContext {
+    /// Gets a reference to the actual ImPlot context struct.
+    #[inline]
+    pub unsafe fn inner(&mut self) -> &mut ImPlotContext {
+        &mut self.0
+    }
+}
+
+#[cfg(feature = "implot")]
+pub trait WithImPlot {
+    fn show_implot_demo_window(&self, show: Option<&mut bool>);
+    fn plot<'ui>(&'ui self, label: &str) -> Plot<'ui>;
+}
+
+#[cfg(feature = "implot")]
+impl<A> WithImPlot for Ui<A> {
+    fn show_implot_demo_window(&self, mut show: Option<&mut bool>) {
+        unsafe {
+            ImPlot_ShowDemoWindow(optional_mut_bool(&mut show));
+        }
+    }
+    fn plot<'a>(&'a self, label: &str) -> Plot<'a> {
+        Plot::new(label)
+    }
+}
+
+#[cfg(feature = "implot")]
+pub struct Plot<'ui> {
+    label: CString,
+    size: ImVec2,
+    flags: PlotFlags,
+    _ui: PhantomData<&'ui ()>,
+}
+
+#[cfg(feature = "implot")]
+impl<'ui> Plot<'ui> {
+    pub fn new(label: &str) -> Self {
+        Plot {
+            label: CString::new(label).unwrap(),
+            size: ImVec2 { x: -1.0, y: 0.0 },
+            flags: PlotFlags::None,
+            _ui: PhantomData,
+        }
+    }
+
+    /// Overrides the default size `ImVec2 { x: -1.0, y: 0.0 }`
+    pub fn size(mut self, size: ImVec2) -> Self {
+        self.size = size;
+        self
+    }
+
+    /// Overrides the default flags `PlotFlags::None`
+    pub fn flags(mut self, flags: PlotFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    /// Calls `f` inside this UI element
+    pub fn with<F>(self, f: F)
+    where
+        F: FnOnce(&mut PlotContext<'ui>),
+    {
+        unsafe {
+            if ImPlot_BeginPlot(
+                self.label.as_ptr(),
+                &self.size,// as *const ImVec2,
+                self.flags.bits(),
+            ) {
+                let mut ctx = PlotContext { _ui: PhantomData };
+                f(&mut ctx);
+                ImPlot_EndPlot();
+            }
+        }
+    }
+}
+
+pub struct PlotContext<'ui> {
+    _ui: PhantomData<&'ui ()>,
+}
+
+impl<'ui> PlotContext<'ui> {
+    pub fn bars(&mut self, label: &str) -> BarsBuilder<'ui> {
+        BarsBuilder::new(label)
+    }
+}
+
+pub struct BarsBuilder<'ui> {
+    label: CString,
+    bar_size: f64,
+    flags: PlotBarsFlags,
+    _ui: PhantomData<&'ui ()>,
+}
+
+impl<'ui> BarsBuilder<'ui> {
+    fn new(label: &str) -> Self {
+        BarsBuilder {
+            label: CString::new(label).unwrap(),
+            bar_size: 0.67,
+            flags: PlotBarsFlags::None,
+            // `const T * values`
+            // `const T * xs`
+            // `const T * ys`
+            // `double shift = 0`
+            // `int offset = 0`
+            // `int stride = sizeof(T)`
+            // TODO: support commented fields above
+            _ui: PhantomData,
+        }
+    }
+
+    /// Overrides default bar size `0.67`
+    pub fn bar_size(mut self, size: f64) -> Self {
+        self.bar_size = size;
+        self
+    }
+
+    /// Overrides default flags `PlotBarsFlags::None`
+    pub fn flags(mut self, flags: PlotBarsFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    /// Plots a series of `(x,y)` points
+    pub fn with(self, points: &'ui [ImVec2]) {
+        let ptr = points.as_ptr() as *mut c_void;
+        unsafe {
+            ImPlot_PlotBarsG(
+                self.label.as_ptr(),
+                Some(point_getter),
+                ptr,
+                points.len() as core::ffi::c_int,
+                self.bar_size,
+                self.flags.bits(),
+            );
+        }
+    }
+}
+
+unsafe extern "C" fn point_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
+    // re-interpret user_data as a *const ImVec2 array
+    let slice = user_data as *const ImVec2;
+
+    let v = unsafe { *slice.add(idx as usize) };
+
+    ImPlotPoint {
+        x: v.x as f64,
+        y: v.y as f64,
     }
 }

@@ -1027,3 +1027,28 @@ imgui_flags! {
         LockBakedSizes,
     }
 }
+
+#[cfg(feature = "implot")]
+imgui_flags! {
+    pub PlotFlags: ImPlotFlags_ {
+        None,
+        NoTitle,
+        NoLegend,
+        NoMouseText,
+        NoInputs,
+        NoMenus,
+        NoBoxSelect,
+        NoFrame,
+        Equal,
+        Crosshairs,
+        CanvasOnly,
+    }
+}
+
+#[cfg(feature = "implot")]
+imgui_flags! {
+    pub PlotBarsFlags: ImPlotBarsFlags_ {
+        None,
+        Horizontal,
+    }
+}
