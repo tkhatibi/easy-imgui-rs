@@ -143,6 +143,7 @@ extern thread_local ImGuiContext* MyImGuiTLS;
     if implot {
         bindings = bindings
             .clang_arg("-DIMGUI_ENABLE_IMPLOT=1")
+            .clang_arg("-DIMPLOT_DISABLE_OBSOLETE_FUNCTIONS=1")
             .header(imgui_src.join("implot.h").to_string_lossy())
             .header(imgui_src.join("implot_internal.h").to_string_lossy())
             .allowlist_file(".*[/\\\\]implot.h")
@@ -207,7 +208,9 @@ extern thread_local ImGuiContext* MyImGuiTLS;
         }
     }
     if implot {
-        build.define("IMGUI_ENABLE_IMPLOT", "1");
+        build
+            .define("IMGUI_ENABLE_IMPLOT", "1")
+            .define("IMPLOT_DISABLE_OBSOLETE_FUNCTIONS", "1");
     }
     build.compile("dear_imgui");
 }
