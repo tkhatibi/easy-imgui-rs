@@ -7,5 +7,6 @@ members = [
     "easy-imgui-window",
     "easy-imgui-filechooser",
     "easy-imgui-opengl",
+    "examples/imgui-demo",
     "examples/implot-demo",
 ]
