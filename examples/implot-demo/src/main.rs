@@ -1,7 +1,6 @@
 use easy_imgui_window::{
     AppHandler, Application, Args, EventResult,
-    easy_imgui::{self as imgui, PlotFlags, WithImPlot, lbl},
-    easy_imgui_sys::{self as sys},
+    easy_imgui::{self as imgui, PlotFlags, WithImPlot, im_vec2, lbl},
     winit,
 };
 use winit::{event::WindowEvent, event_loop::EventLoop};
@@ -57,17 +56,17 @@ impl imgui::UiBuilder for App {
         ui.window_config(lbl("Hello World!")).with(|| {
             ui.text("This is some useful text.");
             let points = vec![
-                sys::ImVec2 { x: 1.0, y: 10.0 },
-                sys::ImVec2 { x: 2.0, y: 20.0 },
-                sys::ImVec2 { x: 3.0, y: 50.0 },
-                sys::ImVec2 { x: 4.0, y: 80.0 },
-                sys::ImVec2 { x: 5.0, y: 60.0 },
-                sys::ImVec2 { x: 6.0, y: 90.0 },
-                sys::ImVec2 { x: 7.0, y: 70.0 },
-                sys::ImVec2 { x: 8.0, y: 80.0 },
+                im_vec2(1.0, 10.0),
+                im_vec2(2.0, 20.0),
+                im_vec2(3.0, 50.0),
+                im_vec2(4.0, 80.0),
+                im_vec2(5.0, 60.0),
+                im_vec2(6.0, 90.0),
+                im_vec2(7.0, 70.0),
+                im_vec2(8.0, 80.0),
             ];
             ui.plot("plot")
-                .size(sys::ImVec2 { x: -1.0, y: 0.0 })
+                .size(im_vec2(-1.0, 0.0))
                 .flags(PlotFlags::NoMenus | PlotFlags::NoLegend)
                 .with(|plot| {
                     plot.bars("My Bars")

@@ -167,7 +167,7 @@ pub use cgmath;
 use easy_imgui_sys::*;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::ffi::{CStr, CString, OsString, c_char, c_void, c_int};
+use std::ffi::{CStr, CString, OsString, c_char, c_int, c_void};
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ops::{Deref, DerefMut};
@@ -390,7 +390,7 @@ pub struct Context {
     ini_file_name: Option<CString>,
 
     #[cfg(feature = "implot")]
-    implot: NonNull<RawImPlotContext>,
+    implot: NonNull<RawPlotContext>,
 }
 
 /// A context that we are sure is made current.
@@ -5188,11 +5188,11 @@ impl TableColumnSortSpec {
 
 #[cfg(feature = "implot")]
 transparent! {
-    pub struct RawImPlotContext(ImPlotContext);
+    pub struct RawPlotContext(ImPlotContext);
 }
 
 #[cfg(feature = "implot")]
-impl RawImPlotContext {
+impl RawPlotContext {
     /// Gets a reference to the actual ImPlot context struct.
     #[inline]
     pub unsafe fn inner(&mut self) -> &mut ImPlotContext {
@@ -5213,7 +5213,7 @@ impl<A> WithImPlot for Ui<A> {
             ImPlot_ShowDemoWindow(optional_mut_bool(&mut show));
         }
     }
-    fn plot<'a>(&'a self, label: &str) -> Plot<'a> {
+    fn plot<'ui>(&'ui self, label: &str) -> Plot<'ui> {
         Plot::new(label)
     }
 }
@@ -5257,7 +5257,7 @@ impl<'ui> Plot<'ui> {
         unsafe {
             if ImPlot_BeginPlot(
                 self.label.as_ptr(),
-                &self.size,// as *const ImVec2,
+                &self.size, // as *const ImVec2,
                 self.flags.bits(),
             ) {
                 let mut ctx = PlotContext { _ui: PhantomData };
@@ -5280,8 +5280,13 @@ impl<'ui> PlotContext<'ui> {
 
 pub struct BarsBuilder<'ui> {
     label: CString,
-    bar_size: f64,
     flags: PlotBarsFlags,
+    bar_size: f64,
+    shift: f64,
+    offset: usize,
+    stride: usize,
+    // We keep a borrow of data so the user_data ptr stays valid
+    data: Option<&'ui [u8]>,
     _ui: PhantomData<&'ui ()>,
 }
 
@@ -5289,15 +5294,12 @@ impl<'ui> BarsBuilder<'ui> {
     fn new(label: &str) -> Self {
         BarsBuilder {
             label: CString::new(label).unwrap(),
-            bar_size: 0.67,
             flags: PlotBarsFlags::None,
-            // `const T * values`
-            // `const T * xs`
-            // `const T * ys`
-            // `double shift = 0`
-            // `int offset = 0`
-            // `int stride = sizeof(T)`
-            // TODO: support commented fields above
+            bar_size: 0.67,
+            shift: 0.0,
+            offset: 0,
+            stride: 0, // we’ll fill this in when you call `with_values`
+            data: None,
             _ui: PhantomData,
         }
     }
@@ -5311,6 +5313,22 @@ impl<'ui> BarsBuilder<'ui> {
     /// Overrides default flags `PlotBarsFlags::None`
     pub fn flags(mut self, flags: PlotBarsFlags) -> Self {
         self.flags = flags;
+        self
+    }
+
+    pub fn shift(mut self, shift: f64) -> Self {
+        self.shift = shift;
+        self
+    }
+
+    /// For an array of tightly‐packed values (e.g. `&[f64]`), pass offset=0, stride=sizeof(f64)
+    pub fn offset(mut self, o: usize) -> Self {
+        self.offset = o;
+        self
+    }
+
+    pub fn stride(mut self, s: usize) -> Self {
+        self.stride = s;
         self
     }
 
@@ -5328,6 +5346,73 @@ impl<'ui> BarsBuilder<'ui> {
             );
         }
     }
+
+    /// Plot a plain `[f64]` buffer
+    pub fn with_values(mut self, vals: &'ui [f64]) {
+        // set up offset/stride defaults if the user never touched them
+        if self.stride == 0 {
+            self.stride = size_of::<f64>();
+        }
+        // Reinterpret the &[f64] as &[u8] so we can do pointer‐arithmetic in bytes
+        self.data = Some(unsafe {
+            std::slice::from_raw_parts(vals.as_ptr() as *const u8, vals.len() * size_of::<f64>())
+        });
+        // call the generic routine
+        unsafe {
+            ImPlot_PlotBarsG(
+                self.label.as_ptr(),
+                Some(generic_getter),
+                self.data.unwrap().as_ptr() as *mut c_void,
+                vals.len() as c_int,
+                self.bar_size,
+                self.flags.bits(),
+            );
+        }
+    }
+
+    /// Plot an interleaved `[u8]` buffer of any `T`
+    pub fn with_raw(mut self, raw: &'ui [u8]) {
+        // user *must* have set offset/stride before
+        assert!(self.stride > 0);
+        assert!(raw.len() >= self.offset + self.stride);
+        self.data = Some(raw);
+
+        unsafe {
+            ImPlot_PlotBarsG(
+                self.label.as_ptr(),
+                Some(generic_getter),
+                raw.as_ptr() as *mut c_void,
+                // The number of “elements” is raw.len()/stride, rounded down
+                (raw.len() / self.stride) as c_int,
+                self.bar_size,
+                self.flags.bits(),
+            );
+        }
+    }
+}
+
+// a tiny struct we stash inside user_data so the getter can see shift/offset/stride
+#[repr(C)]
+struct GetterData {
+    base: *const u8,
+    shift: f64,
+    offset: usize,
+    stride: usize,
+}
+
+unsafe extern "C" fn generic_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
+    let gd = unsafe { &*(user_data as *const GetterData) };
+    
+    // compute the byte‐address of the element:
+    let ptr = unsafe { gd.base.add(gd.offset + (idx as usize) * gd.stride) };
+
+    // assume it's a `f64` in memory:
+    let y = unsafe { *(ptr as *const f64) };
+
+    // compute x as index + shift:
+    let x = (idx as f64) + gd.shift;
+
+    ImPlotPoint { x, y }
 }
 
 unsafe extern "C" fn point_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
@@ -5340,4 +5425,15 @@ unsafe extern "C" fn point_getter(idx: c_int, user_data: *mut c_void) -> ImPlotP
         x: v.x as f64,
         y: v.y as f64,
     }
+}
+
+unsafe extern "C" fn bar_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
+    // reinterpret user_data as pointer to f64
+    let vals = user_data as *const f64;
+
+    // now do the pointer arithmetic + deref in its own unsafe block
+    let y = unsafe { *vals.add(idx as usize) };
+
+    // x = index, y = array value
+    ImPlotPoint { x: idx as f64, y }
 }
