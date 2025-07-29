@@ -41,6 +41,8 @@ impl Application for App {
         App
     }
     fn window_event(&mut self, args: Args<Self>, _event: WindowEvent, res: EventResult) {
+        args.window.ping_user_input();
+
         if res.window_closed {
             args.event_loop.exit();
         }
