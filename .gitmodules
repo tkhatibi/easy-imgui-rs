@@ -5,3 +5,7 @@
 	path = easy-imgui-sys/implot
 	url = https://github.com/epezent/implot.git
 	branch = master
+[submodule "wu-clib-rs"]
+	path = wu-clib-rs
+	url = https://github.com/tkhatibi/wu-clib-rs.git
+	branch = taurus
