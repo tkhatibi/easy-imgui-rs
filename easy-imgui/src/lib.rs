@@ -5268,16 +5268,19 @@ impl<'ui> Plot<'ui> {
     }
 }
 
+#[cfg(feature = "implot")]
 pub struct PlotContext<'ui> {
     _ui: PhantomData<&'ui ()>,
 }
 
+#[cfg(feature = "implot")]
 impl<'ui> PlotContext<'ui> {
     pub fn bars(&mut self, label: &str) -> BarsBuilder<'ui> {
         BarsBuilder::new(label)
     }
 }
 
+#[cfg(feature = "implot")]
 pub struct BarsBuilder<'ui> {
     label: CString,
     flags: PlotBarsFlags,
@@ -5290,6 +5293,7 @@ pub struct BarsBuilder<'ui> {
     _ui: PhantomData<&'ui ()>,
 }
 
+#[cfg(feature = "implot")]
 impl<'ui> BarsBuilder<'ui> {
     fn new(label: &str) -> Self {
         BarsBuilder {
@@ -5392,6 +5396,7 @@ impl<'ui> BarsBuilder<'ui> {
 }
 
 // a tiny struct we stash inside user_data so the getter can see shift/offset/stride
+#[cfg(feature = "implot")]
 #[repr(C)]
 struct GetterData {
     base: *const u8,
@@ -5400,6 +5405,7 @@ struct GetterData {
     stride: usize,
 }
 
+#[cfg(feature = "implot")]
 unsafe extern "C" fn generic_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
     let gd = unsafe { &*(user_data as *const GetterData) };
     
@@ -5415,6 +5421,7 @@ unsafe extern "C" fn generic_getter(idx: c_int, user_data: *mut c_void) -> ImPlo
     ImPlotPoint { x, y }
 }
 
+#[cfg(feature = "implot")]
 unsafe extern "C" fn point_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
     // re-interpret user_data as a *const ImVec2 array
     let slice = user_data as *const ImVec2;
@@ -5427,6 +5434,7 @@ unsafe extern "C" fn point_getter(idx: c_int, user_data: *mut c_void) -> ImPlotP
     }
 }
 
+#[cfg(feature = "implot")]
 unsafe extern "C" fn bar_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
     // reinterpret user_data as pointer to f64
     let vals = user_data as *const f64;
