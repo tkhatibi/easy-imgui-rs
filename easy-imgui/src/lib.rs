@@ -5445,3 +5445,27 @@ unsafe extern "C" fn bar_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoi
     // x = index, y = array value
     ImPlotPoint { x: idx as f64, y }
 }
+
+pub fn plot_line_u16(
+    label: &str,
+    values: &[ImU16],
+    xscale: f64,
+    xstart: f64,
+    flags: PlotLineFlags,
+    offset: usize,
+) {
+    let c_label = CString::new(label).expect("CString::new failed");
+
+    unsafe {
+        ImPlot_PlotLine_ImU16(
+            c_label.as_ptr(),
+            values.as_ptr(),
+            values.len() as c_int,
+            xscale,
+            xstart,
+            flags.bits(),
+            offset as c_int,
+            size_of::<ImU16>() as c_int,
+        );
+    }
+}

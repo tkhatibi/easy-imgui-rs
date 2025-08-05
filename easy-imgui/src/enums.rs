@@ -1047,6 +1047,18 @@ imgui_flags! {
 
 #[cfg(feature = "implot")]
 imgui_flags! {
+    pub PlotLineFlags: ImPlotLineFlags_ {
+        None,
+        Segments,
+        Loop,
+        SkipNaN,
+        NoClip,
+        Shaded,
+    }
+}
+
+#[cfg(feature = "implot")]
+imgui_flags! {
     pub PlotBarsFlags: ImPlotBarsFlags_ {
         None,
         Horizontal,

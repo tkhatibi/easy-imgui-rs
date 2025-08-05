@@ -89,6 +89,12 @@ extern thread_local ImGuiContext* MyImGuiTLS;
         }
     }
 
+    if implot {
+        let src = manifest_dir.join("implot_wrappers.h");
+        sh.copy_file(&src, &imgui_src).unwrap();
+        println!("cargo:rerun-if-changed={}", src.display());
+    }
+
     println!("cargo:THIRD_PARTY={}", imgui_src.display());
 
     println!("cargo:rerun-if-changed=wrapper.cpp");
@@ -154,8 +160,10 @@ extern thread_local ImGuiContext* MyImGuiTLS;
             // .clang_arg("-D_MSC_VER=1")
             // .clang_arg("-D_WIN32=1")
             .header(imgui_src.join("implot.h").to_string_lossy())
+            .header(imgui_src.join("implot_wrappers.h").to_string_lossy())
             .header(imgui_src.join("implot_internal.h").to_string_lossy())
             .allowlist_file(".*[/\\\\]implot.h")
+            .allowlist_file(".*[/\\\\]implot_wrappers.h")
             // many people use the internals, so better to expose those, just do not use them lightly
             .allowlist_file(".*[/\\\\]implot_internal.h");
     }

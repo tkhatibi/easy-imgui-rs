@@ -15,6 +15,7 @@ thread_local ImGuiContext *MyImGuiTLS;
     #include "implot.cpp"
     #include "implot_demo.cpp"
     #include "implot_items.cpp"
+    #include "implot_wrappers.h"
 #endif
 
 #ifdef _MSC_VER

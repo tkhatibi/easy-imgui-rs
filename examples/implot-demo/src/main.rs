@@ -1,6 +1,9 @@
 use easy_imgui_window::{
     AppHandler, Application, Args, EventResult,
-    easy_imgui::{self as imgui, PlotFlags, WithImPlot, im_vec2, lbl},
+    easy_imgui::{
+        self as imgui, PlotBarsFlags, PlotFlags, PlotLineFlags, WithImPlot, im_vec2, lbl,
+        plot_line_u16,
+    },
     winit,
 };
 use winit::{event::WindowEvent, event_loop::EventLoop};
@@ -57,6 +60,7 @@ impl imgui::UiBuilder for App {
 
         ui.window_config(lbl("Hello World!")).with(|| {
             ui.text("This is some useful text.");
+
             let points = vec![
                 im_vec2(1.0, 10.0),
                 im_vec2(2.0, 20.0),
@@ -67,14 +71,18 @@ impl imgui::UiBuilder for App {
                 im_vec2(7.0, 70.0),
                 im_vec2(8.0, 80.0),
             ];
+            let values = vec![12u16, 14, 15, 14, 17, 18, 16, 17, 16, 20, 25, 27];
+
             ui.plot("plot")
                 .size(im_vec2(-1.0, 0.0))
                 .flags(PlotFlags::NoMenus | PlotFlags::NoLegend)
                 .with(|plot| {
                     plot.bars("My Bars")
                         .bar_size(0.8)
-                        // .flags(PlotBarsFlags::Horizontal)
+                        .flags(PlotBarsFlags::Horizontal)
                         .with(&points);
+
+                    plot_line_u16("My values", &values, 1.0, 0.0, PlotLineFlags::Loop, 0); // I don't even know what is stride
                 });
         });
     }
