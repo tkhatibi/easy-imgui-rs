@@ -5408,7 +5408,7 @@ struct GetterData {
 #[cfg(feature = "implot")]
 unsafe extern "C" fn generic_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoint {
     let gd = unsafe { &*(user_data as *const GetterData) };
-    
+
     // compute the byte‐address of the element:
     let ptr = unsafe { gd.base.add(gd.offset + (idx as usize) * gd.stride) };
 
@@ -5446,26 +5446,28 @@ unsafe extern "C" fn bar_getter(idx: c_int, user_data: *mut c_void) -> ImPlotPoi
     ImPlotPoint { x: idx as f64, y }
 }
 
-pub fn plot_line_u16(
-    label: &str,
-    values: &[ImU16],
+pub fn plot_line<T: Into<f64> + Copy>(
+    label: &str, values: &[T],
     xscale: f64,
     xstart: f64,
     flags: PlotLineFlags,
     offset: usize,
 ) {
-    let c_label = CString::new(label).expect("CString::new failed");
+    let c_label = CString::new(label).unwrap();
+
+    // TODO: [f64] doesn't need to be converted
+    let double_values: Vec<f64> = values.iter().map(|v| (*v).into()).collect();
 
     unsafe {
-        ImPlot_PlotLine_ImU16(
+        ImPlot_PlotLine_Double(
             c_label.as_ptr(),
-            values.as_ptr(),
-            values.len() as c_int,
+            double_values.as_ptr(),
+            double_values.len() as c_int,
             xscale,
             xstart,
             flags.bits(),
             offset as c_int,
-            size_of::<ImU16>() as c_int,
+            size_of::<f64>() as c_int,
         );
     }
 }

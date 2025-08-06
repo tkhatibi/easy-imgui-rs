@@ -1,8 +1,7 @@
 use easy_imgui_window::{
     AppHandler, Application, Args, EventResult,
     easy_imgui::{
-        self as imgui, PlotBarsFlags, PlotFlags, PlotLineFlags, WithImPlot, im_vec2, lbl,
-        plot_line_u16,
+        self as imgui, PlotBarsFlags, PlotFlags, PlotLineFlags, WithImPlot, im_vec2, lbl, plot_line,
     },
     winit,
 };
@@ -63,15 +62,14 @@ impl imgui::UiBuilder for App {
 
             let points = vec![
                 im_vec2(1.0, 10.0),
-                im_vec2(2.0, 20.0),
+                im_vec2(2.0, 15.0),
                 im_vec2(3.0, 50.0),
                 im_vec2(4.0, 80.0),
                 im_vec2(5.0, 60.0),
                 im_vec2(6.0, 90.0),
                 im_vec2(7.0, 70.0),
-                im_vec2(8.0, 80.0),
+                im_vec2(8.0, 90.0),
             ];
-            let values = vec![12u16, 14, 15, 14, 17, 18, 16, 17, 16, 20, 25, 27];
 
             ui.plot("plot")
                 .size(im_vec2(-1.0, 0.0))
@@ -82,7 +80,14 @@ impl imgui::UiBuilder for App {
                         .flags(PlotBarsFlags::Horizontal)
                         .with(&points);
 
-                    plot_line_u16("My values", &values, 1.0, 0.0, PlotLineFlags::Loop, 0); // I don't even know what is stride
+                    plot_line(
+                        "My values",
+                        &points.iter().map(|p| p.y as f64).collect::<Vec<f64>>(),
+                        1.0,
+                        0.0,
+                        PlotLineFlags::Loop | PlotLineFlags::Segments,
+                        0,
+                    );
                 });
         });
     }

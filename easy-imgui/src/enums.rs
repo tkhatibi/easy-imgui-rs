@@ -1048,11 +1048,18 @@ imgui_flags! {
 #[cfg(feature = "implot")]
 imgui_flags! {
     pub PlotLineFlags: ImPlotLineFlags_ {
+        /// default
         None,
+        /// a line segment will be rendered from every two consecutive points
         Segments,
+        /// the last and first point will be connected to form a closed loop
         Loop,
+        /// NaNs values will be skipped instead of rendered as missing data
         SkipNaN,
+        /// markers (if displayed) on the edge of a plot will not be clipped
         NoClip,
+
+        /// a filled region between the line and horizontal origin will be rendered; use PlotShaded for more advanced cases
         Shaded,
     }
 }
