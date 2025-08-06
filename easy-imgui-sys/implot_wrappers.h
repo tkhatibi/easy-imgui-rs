@@ -89,17 +89,21 @@ extern "C" {
         ImPlot::PlotDigital<TYPE>(label_id, xs, ys, count, flags, offset, stride); \
     }
 
-// Instantiate for all supported types
-DEFINE_PLOT_WRAPPERS(float, Float)
+// Implot converts all types to double before plotting.
+// So there is no need to wrap all the types.
+// Rust can convert other types to double (f64),
+// before passing them to implot.
+
+// DEFINE_PLOT_WRAPPERS(ImS8, ImS8)
+// DEFINE_PLOT_WRAPPERS(ImU8, ImU8)
+// DEFINE_PLOT_WRAPPERS(ImS16, ImS16)
+// DEFINE_PLOT_WRAPPERS(ImU16, ImU16)
+// DEFINE_PLOT_WRAPPERS(ImS32, ImS32)
+// DEFINE_PLOT_WRAPPERS(ImU32, ImU32)
+// DEFINE_PLOT_WRAPPERS(ImS64, ImS64)
+// DEFINE_PLOT_WRAPPERS(ImU64, ImU64)
+// DEFINE_PLOT_WRAPPERS(float, Float)
 DEFINE_PLOT_WRAPPERS(double, Double)
-DEFINE_PLOT_WRAPPERS(ImS8, ImS8)
-DEFINE_PLOT_WRAPPERS(ImU8, ImU8)
-DEFINE_PLOT_WRAPPERS(ImS16, ImS16)
-DEFINE_PLOT_WRAPPERS(ImU16, ImU16)
-DEFINE_PLOT_WRAPPERS(ImS32, ImS32)
-DEFINE_PLOT_WRAPPERS(ImU32, ImU32)
-DEFINE_PLOT_WRAPPERS(ImS64, ImS64)
-DEFINE_PLOT_WRAPPERS(ImU64, ImU64)
 
 #undef DEFINE_PLOT_WRAPPERS
 
